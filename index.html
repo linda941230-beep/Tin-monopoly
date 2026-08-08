@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎒 國小小博士 - 文字大富翁</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: "MHK_DFKai", "標楷體", "BiauKai", "Microsoft JhengHei", sans-serif;
+        }
+        body {
+            background-color: #e0f7fa;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #0288d1;
+            font-size: 32px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px #b2ebf2;
+        }
+        .main-container {
+            display: flex;
+            gap: 20px;
+            max-width: 1000px;
+            width: 100%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        /* 棋盤佈局 */
+        #board {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            grid-template-rows: repeat(6, 1fr);
+            gap: 6px;
+            width: 580px;
+            height: 580px;
+            background-color: #ffb74d;
+            padding: 8px;
+            border-radius: 15px;
+            box-shadow: 0 8px 0px #f57c00;
+        }
+        .cell {
+            background-color: #ffffff;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+            border: 2px solid #ffe0b2;
+            box-shadow: inset 0 -3px 0 rgba(0,0,0,0.1);
+        }
+        .cell-center {
+            grid-column: 2 / 6;
+            grid-row: 2 / 6;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            padding: 20px;
+            border: 3px dashed #4caf50;
+            text-align: center;
+        }
+        /* 各類格子色彩與主題 */
+        .type-start { background-color: #81c784; color: white; }
+        .type-idiom { background-color: #64b5f6; color: white; }
+        .type-zhuyin { background-color: #ba68c8; color: white; }
+        .type-riddle { background-color: #ff8a65; color: white; }
+        .type-chance { background-color: #ffd54f; color: #5d4037; }
+        .type-fate { background-color: #e57373; color: white; }
+
+        /* 玩家棋子 */
+        .tokens {
+            display: flex;
+            gap: 4px;
+            position: absolute;
+            bottom: 4px;
+        }
+        .p1-token {
+            width: 20px;
+            height: 20px;
+            background-color: #ff5252;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .p2-token {
+            width: 20px;
+            height: 20px;
+            background-color: #2196f3;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* 控制面板與資訊 */
+        .panel {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 6px 0px #b0bec5;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border: 3px solid #cfd8dc;
+        }
+        .player-card {
+            padding: 12px;
+            border-radius: 10px;
+            border: 3px solid #e0e0e0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .player-card.active {
+            border-color: #4caf50;
+            background-color: #e8f5e9;
+            transform: scale(1.02);
+        }
+        button {
+            padding: 15px 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            background-color: #ff9800;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #e65100;
+            transition: 0.1s;
+        }
+        button:active {
+            box-shadow: 0 2px 0 #e65100;
+            transform: translateY(3px);
+        }
+        button:disabled {
+            background-color: #b0bec5;
+            box-shadow: 0 5px 0 #78909c;
+            cursor: not-allowed;
+        }
+        #log {
+            height: 150px;
+            border: 2px solid #ffe0b2;
+            border-radius: 8px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 14px;
+            background: #fffde7;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎒 國小小博士 - 文字大富翁</h1>
+
+    <div class="main-container">
+        <!-- 棋盤區域 -->
+        <div id="board">
+            <div class="cell-center">
+                <h2 style="color: #2e7d32; margin: 5px;">🏆 知識城堡</h2>
+                <p id="event-display" style="font-size: 18px; color: #555;">按一下「擲骰子」開始冒險！</p>
+            </div>
+        </div>
+
+        <!-- 遊戲狀態與控制 -->
+        <div class="panel">
+            <div id="p0-card" class="player-card active">
+                <span style="color: #ff5252;">🔴</span> 玩家 1 (紅隊)
+                <div style="margin-top: 5px;">⭐ 知識點數: <span id="p0-coins" style="color:#d81b60;">100</span> 分</div>
+            </div>
+            <div id="p1-card" class="player-card">
+                <span style="color: #2196f3;">🔵</span> 玩家 2 (藍隊)
+                <div style="margin-top: 5px;">⭐ 知識點數: <span id="p1-coins" style="color:#1976d2;">100</span> 分</div>
+            </div>
+
+            <button id="roll-btn" onclick="playTurn()">🎲 擲骰子前進！</button>
+
+            <div>
+                <strong>📜 冒險紀錄：</strong>
+                <div id="log"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 適合國小學生的地圖題目 (共 20 格)
+        const mapData = [
+            { name: "🚀 起點", type: "start", pos: [6,6] },
+            { name: "✏️ 成語關", type: "idiom", q: "「三心二( )」請填入正確的數字？", a: "意", pos: [6,5] },
+            { name: "🎁 機會", type: "chance", pos: [6,4] },
+            { name: "🧩 猜燈謎", type: "riddle", q: "「一口吃掉牛尾巴」（猜一個漢字）", a: "告", pos: [6,3] },
+            { name: "🔤 注音關", type: "zhuyin", q: "「第一名」的「第」，注音拼音第一字是 (ㄉ/ㄉ一ˋ)？", a: "ㄉ一ˋ", pos: [6,2] },
+            { name: "💥 命運", type: "fate", pos: [6,1] },
+            { name: "✏️ 成語關", type: "idiom", q: "「守株待( )」請問農夫在等什麼動物？", a: "兔", pos: [5,1] },
+            { name: "🧩 猜燈謎", type: "riddle", q: "「十個哥哥」（猜一個漢字）", a: "克", pos: [4,1] },
+            { name: "🎁 機會", type: "chance", pos: [4,1] },
+            { name: "🔤 注音關", type: "zhuyin", q: "「蘋果」的「果」，三聲 ㄍㄨㄛˇ 的聲調是第幾聲？(填數字)", a: "3", pos: [2,1] },
+            { name: "⭐ 加油站", type: "start", pos: [1,1] },
+            { name: "✏️ 成語關", type: "idiom", q: "「九牛一( )」比喻極少數，括號要填入「毛」還是「角」？", a: "毛", pos: [1,2] },
+            { name: "💥 命運", type: "fate", pos: [1,3] },
+            { name: "🧩 猜燈謎", type: "riddle", q: "「左邊綠，右邊紅；左邊怕水，右邊怕風」（猜一個漢字）", a: "秋", pos: [1,4] },
+            { name: "🔤 注音關", type: "zhuyin", q: "「小熊」的「熊」，韻母是 ㄩㄥ 還是 ㄨㄥ？", a: "ㄩㄥ", pos: [1,5] },
+            { name: "🎁 機會", type: "chance", pos: [1,6] },
+            { name: "✏️ 成語關", type: "idiom", q: "「亡羊補( )」比喻事後想辦法補救，括號填什麼？", a: "牢", pos: [2,6] },
+            { name: "🧩 猜燈謎", type: "riddle", q: "「一人一張口，口下長隻手」（猜一個漢字）", a: "拿", pos: [3,6] },
+            { name: "💥 命運", type: "fate", pos: [4,6] },
+            { name: "🔤 注音關", type: "zhuyin", q: "「聽音樂」的「樂」，當歡樂時讀作 ㄌㄜˋ，當音樂時讀作什麼？", a: "ㄩㄝˋ", pos: [5,6] }
+        ];
+
+        // 玩家狀態 (增加了「暫停回合」狀態)
+        const players = [
+            { id: 0, name: "玩家 1 (紅)", pos: 0, coins: 100, class: "p1-token", skipTurn: false },
+            { id: 1, name: "玩家 2 (藍)", pos: 0, coins: 100, class: "p2-token", skipTurn: false }
+        ];
+        let currentPlayer = 0;
+
+        // 初始化棋盤
+        function initBoard() {
+            const board = document.getElementById('board');
+            mapData.forEach((tile, index) => {
+                const cell = document.createElement('div');
+                cell.className = `cell type-${tile.type}`;
+                cell.style.gridRow = tile.pos[0];
+                cell.style.gridColumn = tile.pos[1];
+                cell.id = `tile-${index}`;
+                cell.innerHTML = `<span>${tile.name}</span><div class="tokens"></div>`;
+                board.appendChild(cell);
+            });
+            updateTokens();
+        }
+
+        // 更新棋子位置
+        function updateTokens() {
+            document.querySelectorAll('.tokens').forEach(el => el.innerHTML = '');
+            players.forEach(p => {
+                const token = document.createElement('div');
+                token.className = p.class;
+                document.querySelector(`#tile-${p.pos} .tokens`).appendChild(token);
+            });
+        }
+
+        // 記錄日誌
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML = `<div>${msg}</div>` + logDiv.innerHTML;
+        }
+
+        // 進行回合
+        function playTurn() {
+            document.getElementById('roll-btn').disabled = true;
+            const player = players[currentPlayer];
+
+            // 檢查是否處於暫停狀態
+            if (player.skipTurn) {
+                player.skipTurn = false;
+                alert(`😴 ${player.name} 本回合休息一次！`);
+                log(`😴 ${player.name} 休息了一回合。`);
+                switchPlayer();
+                return;
+            }
+
+            const dice = Math.floor(Math.random() * 6) + 1;
+            player.pos = (player.pos + dice) % mapData.length;
+            updateTokens();
+            
+            const tile = mapData[player.pos];
+            log(`🎲 ${player.name} 擲出了 <strong>${dice}</strong> 點，來到【${tile.name}】`);
+
+            setTimeout(() => {
+                handleTileEvent(player, tile);
+            }, 300);
+        }
+
+        // 處理格子事件
+        function handleTileEvent(player, tile) {
+            if (["idiom", "riddle", "zhuyin"].includes(tile.type)) {
+                let answer = prompt(`💡【${tile.name}】小挑戰：\n\n${tile.q}`);
+                if (answer && answer.trim().toUpperCase() === tile.a.toUpperCase()) {
+                    player.coins += 30;
+                    alert(`🎉 太棒了！答對囉！獲得 30 分！`);
+                    log(`✅ ${player.name} 答對挑戰，獲得 30 分！`);
+                } else {
+                    player.coins = Math.max(0, player.coins - 10);
+                    alert(`❌ 差一點點！正確答案是：「${tile.a}」\n扣除 10 分，下次加油！`);
+                    log(`❌ ${player.name} 答錯了，扣除 10 分。`);
+                }
+            } else if (tile.type === "chance") {
+                const rand = Math.random();
+                if (rand > 0.5) {
+                    player.coins += 40;
+                    alert(`🎁【機會】表現優良！獲得老師獎勵 40 分！`);
+                    log(`🎁 ${player.name} 獲得獎勵 40 分。`);
+                } else {
+                    player.pos = (player.pos + 2) % mapData.length;
+                    updateTokens();
+                    alert(`🚀【機會】坐上快速火箭，向前飛進 2 格！`);
+                    log(`🚀 ${player.name} 向前飛進了 2 格！`);
+                }
+            } else if (tile.type === "fate") {
+                const rand = Math.random();
+                if (rand > 0.5) {
+                    player.coins = Math.max(0, player.coins - 20);
+                    alert(`💥【命運】忘記寫作業！扣除 20 分！`);
+                    log(`💥 ${player.name} 被扣除 20 分。`);
+                } else {
+                    player.skipTurn = true;
+                    alert(`😴【命運】上課打瞌睡，下回合休息一次！`);
+                    log(`😴 ${player.name} 下回合將被暫停一次。`);
+                }
+            } else if (tile.type === "start") {
+                player.coins += 20;
+                alert(`⭐ 經過加油站，補充能量獲得 20 分！`);
+            }
+
+            updateUI();
+            
+            // 勝負判斷（先拿到 200 分獲勝）
+            if (player.coins >= 200) {
+                alert(`🏆 萬歲！${player.name} 率先拿到 200 分，成為「文字小博士」！`);
+                return;
+            }
+
+            switchPlayer();
+        }
+
+        // 切換玩家
+        function switchPlayer() {
+            currentPlayer = (currentPlayer + 1) % 2;
+            document.getElementById('p0-card').classList.toggle('active', currentPlayer === 0);
+            document.getElementById('p1-card').classList.toggle('active', currentPlayer === 1);
+            document.getElementById('roll-btn').disabled = false;
+        }
+
+        // 更新 UI 數據
+        function updateUI() {
+            document.getElementById('p0-coins').innerText = players[0].coins;
+            document.getElementById('p1-coins').innerText = players[1].coins;
+        }
+
+        // 啟動遊戲
+        initBoard();
+    </script>
+</body>
+</html>
